@@ -1,7 +1,8 @@
 # coding: UTF-8
 import RPi.GPIO as GPIO
 from display import display
-import time                    
+import time     
+               
                      
 LED1 = 17                      
 LED2 = 27                      
@@ -15,11 +16,27 @@ GPIO.setup(LED1,GPIO.OUT)
 GPIO.setup(LED2,GPIO.OUT)      
 GPIO.setup(LED3,GPIO.OUT)      
 GPIO.setup(SW1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(SW2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(SW2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(bkled,GPIO.OUT)
 GPIO.output(bkled,True)
 
+# fault_mode = False
 
+def callback(channel):
+    global fault_mode
+    # fault_mode = True
+    while GPIO.input(SW2) == GPIO.LOW:
+        GPIO.output(LED1, 1)
+        GPIO.output(LED2, 0)
+        GPIO.output(LED3, 1)
+        LCD.clear()
+        LCD.put('Trouble')
+        LCD.pos(1,0)
+        LCD.put('Fault:V')
+        time.sleep(1000)
+        LCD.clear()
+
+GPIO.add_event_detect(SW2, GPIO.FALLING, callback=callback, bouncetime=200)
 
 LCD = display()
 try:
