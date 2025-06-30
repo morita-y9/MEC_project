@@ -39,7 +39,14 @@ LCD = display()
 def fault_handler():
     global fault_mode
     fault_mode = True
+    
+    #ブザー関連
+    #pin23.start(50)
+    #pin23.ChangeFrequency(600)
+    
     while GPIO.input(SW1) == GPIO.HIGH and GPIO.input(SW2) == GPIO.LOW:
+        if GPIO.input(SW2) != GPIO.LOW:
+            break
         GPIO.output(LED1, 1)
         GPIO.output(LED2, 0)
         GPIO.output(LED3, 1)
@@ -49,11 +56,6 @@ def fault_handler():
         LCD.pos(1,0)
         LCD.put('Fault:V')
         time.sleep(1)
-        #ブザー関連
-        pin23.start(50)
-        GPIO.output(pwmpin,GPIO.HIGH)
-        pin23.ChangeFrequency(600)
-        time.sleep(2)
         #異常時ホストPCにリクエストを送信する
         ser.write(b'REQHPCRP1\n')
         print("異常時リクエストを送信")
@@ -75,7 +77,9 @@ def fault_handler():
         
     fault_mode = False
     LCD.clear()
+    pin23.stop()
 
+#異常系の並列処理
 def callback(channel):
     if not fault_mode:
         threading.Thread(target=fault_handler, daemon=True).start()
@@ -88,14 +92,17 @@ received_request = False
 def serial_receiver():
     global received_request
     while True:
-        line = ser.readline().decode('utf-8').strip()
-        if line == 'REQHPCRP1':
-            print(f"受信：{line}")
-            ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
-            print("送信完了")
-            received_request = True
+        if not fault_mode and GPIO.input(SW1) == GPIO.HIGH:
+            line = ser.readline().decode('utf-8').strip()
+            if line == 'REQHPCRP1':
+                print(f"受信：{line}")
+                ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
+                print("送信完了")
+                received_request = True
             
-threading.Thread(target=ser.readline, daemon=True).start()
+threading.Thread(target=serial_receiver, daemon=True).start()
+
+
 #正常系 
 try:
     while True:
@@ -104,29 +111,19 @@ try:
             GPIO.output(LED1, 1)
             GPIO.output(LED2, 1)
             GPIO.output(LED3, 1)
-            #正常時ホストPCからリクエストが来たときに正常時のデータを送信する
-            #line = ser.readline().decode('utf-8').strip()
-            #if line == "REQHPCRP1":
-            #    print(f"受信:{line}")
-            #    ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
-            #    print("送信完了")
-            
-            if fault_mode:
-                continue
+            if fault_mode: continue
             LCD.clear()
             LCD.put('U:6600V')
             LCD.pos(1,0)
             LCD.put('Charging')
             time.sleep(2)
-            if fault_mode:  
-                continue
+            if fault_mode: continue
             LCD.clear()
             LCD.put('V:6610V')
             LCD.pos(1,0)
             LCD.put('Charging')
             time.sleep(2)
-            if fault_mode:
-                continue
+            if fault_mode: continue
             LCD.clear()
             LCD.put('W:6620V')
             LCD.pos(1,0)
