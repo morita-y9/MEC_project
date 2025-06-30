@@ -69,7 +69,7 @@ def fault_handler():
         
         if ack =='ACK':
             print(f"ホストPCからACKを受信 {ack}")
-            data = f"U:6600,OK, V:0, NG, W:6620, OK {timestamp}, END"
+            data = f"U:6600,OK, V:0, NG, W:6620, OK, {timestamp}, END"
             ser.write(data.encode('utf-8'))
             print("ホストPCに異常時データを送信")
         
@@ -96,7 +96,7 @@ def serial_receiver():
             line = ser.readline().decode('utf-8').strip()
             if line == 'REQHPCRP1':
                 print(f"受信：{line}")
-                ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
+                ser.write(b"U:6600,OK, V:6610,OK, W:6620,OK, END\n")
                 print("送信完了")
                 received_request = True
             
