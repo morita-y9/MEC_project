@@ -9,7 +9,6 @@ import serial
 #bluetooth関連
 ser = serial.Serial('/dev/rfcomm0',9600)
 print("Waiting for request...")
-line = ser.readline().decode('utf-8').strip()
 
     
 #GPIOセットアップ
@@ -51,9 +50,10 @@ def fault_handler():
         LCD.put('Fault:V')
         time.sleep(1)
         #ブザー関連
-        # pin23.start(50)
-        # GPIO.output(pwmpin,GPIO.HIGH)
-        # pin23.ChangeFrequency(600)
+        pin23.start(50)
+        GPIO.output(pwmpin,GPIO.HIGH)
+        pin23.ChangeFrequency(600)
+        time.sleep(2)
         #異常時ホストPCにリクエストを送信する
         ser.write(b'REQHPCRP1\n')
         print("異常時リクエストを送信")
@@ -87,15 +87,15 @@ GPIO.add_event_detect(SW2, GPIO.FALLING, callback=callback, bouncetime=200)
 try:
     while True:
         if not fault_mode and GPIO.input(SW1) == GPIO.HIGH:
+            pin23.stop()
             GPIO.output(LED1, 1)
             GPIO.output(LED2, 1)
             GPIO.output(LED3, 1)
             #正常時ホストPCからリクエストが来たときに正常時のデータを送信する
+            line = ser.readline().decode('utf-8').strip()
             if line == "REQHPCRP1":
                 print(f"受信:{line}")
-                
-                response = "U:6600,OK V:6610, OK, W:6620, OK,END\n"
-                ser.write(response.encode('utf-8'))
+                ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
                 print("送信完了")
             
             if fault_mode:
@@ -105,7 +105,7 @@ try:
             LCD.pos(1,0)
             LCD.put('Charging')
             time.sleep(2)
-            if fault_mode:
+            if fault_mode:  
                 continue
             LCD.clear()
             LCD.put('V:6610V')
