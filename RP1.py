@@ -82,7 +82,20 @@ def callback(channel):
 
 GPIO.add_event_detect(SW2, GPIO.FALLING, callback=callback, bouncetime=200)
 
+#シリアル受信用並列処理
+received_request = False
 
+def serial_receiver():
+    global received_request
+    while True:
+        line = ser.readline().decode('utf-8').strip()
+        if line == 'REQHPCRP1':
+            print(f"受信：{line}")
+            ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
+            print("送信完了")
+            received_request = True
+            
+threading.Thread(target=ser.readline, daemon=True).start()
 #正常系 
 try:
     while True:
@@ -92,11 +105,11 @@ try:
             GPIO.output(LED2, 1)
             GPIO.output(LED3, 1)
             #正常時ホストPCからリクエストが来たときに正常時のデータを送信する
-            line = ser.readline().decode('utf-8').strip()
-            if line == "REQHPCRP1":
-                print(f"受信:{line}")
-                ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
-                print("送信完了")
+            #line = ser.readline().decode('utf-8').strip()
+            #if line == "REQHPCRP1":
+            #    print(f"受信:{line}")
+            #    ser.write(b"U:6600,OK, V:6610, OK, W:6620, OK \n")
+            #    print("送信完了")
             
             if fault_mode:
                 continue
